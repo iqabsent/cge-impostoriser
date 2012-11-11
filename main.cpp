@@ -22,9 +22,7 @@ mat4 modelToProjection_;
 mat4 cameraToWorld;
 mat4 modelToWorld;
 char default_source[] = "assets/duck.geom";
-char default_filename[] = "impostors.jpg";
 char * source;
-char * filename;
 
 void updateView()
 {
@@ -42,7 +40,7 @@ void updateView()
   modelToProjection_ = modelToWorld * worldToCamera * cameraToProjection;
 }
 
-void screendump(char * filename) {
+void screendump() {
 
   int bytes_per_pixel = 3;   // or 1 for GRACYSCALE images
   GLubyte *raw_image = new GLubyte[viewport_width_*viewport_height_*3];
@@ -53,12 +51,14 @@ void screendump(char * filename) {
 	row_pointer[0] = (GLubyte *)malloc( viewport_width_ * 3 );
   glReadPixels(0, 0, viewport_width_, viewport_height_, GL_RGB, GL_UNSIGNED_BYTE, raw_image);
 
+  char *filename = "impostors.jpg";
+
   struct jpeg_compress_struct cinfo;
 	struct jpeg_error_mgr jerr;
 	
 	// this is a pointer to one row of image data
 	FILE *outfile = fopen( filename, "wb" );
-	
+
 	if ( !outfile )
 	{
 		printf("Error opening output jpeg file %s\n!", filename );
@@ -77,12 +77,16 @@ void screendump(char * filename) {
 	jpeg_set_defaults( &cinfo );
 	// Now do the compression ..
 	jpeg_start_compress( &cinfo, TRUE );
+
 	// write one row at a time
 	while( cinfo.next_scanline < cinfo.image_height )
 	{
 		row_pointer[0] = &raw_image[ (cinfo.image_height - cinfo.next_scanline) * cinfo.image_width *  cinfo.input_components];
+// THIS FAILS:
+// it used to fail .. then I compiled my own libjpeg.lib .. then it worked .. haven't changed anything to the project .. and now it fails again
 		jpeg_write_scanlines( &cinfo, row_pointer, 1 );
 	}
+
 	// similar to read file, clean up after we're done compressing
 	jpeg_finish_compress( &cinfo );
 	jpeg_destroy_compress( &cinfo );
@@ -131,11 +135,7 @@ void display()
     }
   }
 
-  screendump(filename);
-
-  // remove this if you want to see what should be going into the file on-screen.
-  // ...will create this file every frame :/
-  exit(0); // i realise the consequences...
+  screendump();
 }
 
 // boiler plate for building a camera
@@ -154,33 +154,29 @@ void main(int argc, char** argv) {
   if(argc < 2) {
     // print usage message, quit
     printf(
-    "\r\n"
-    "Usage: impostorise [source] [destination] [horizontal steps] [vertical steps] \r\n"
-    "- [source] must be a .geom file \r\n"
-    "- [destination] must be a .jpg file (will override) \r\n"
-    "- [horizontal steps] number of angles horizontally (4 + multiple of 4) \r\n"
-    "- [vertical steps] number of angles vertically (3 + multiple of 2) \r\n"
-    "\r\n"
-    "Defaults used - [assets/duck.geom] [impostors.jpg] [8] [5] \r\n"
-    "\r\n"
+      "\r\n"
+      "Usage: impostorise.exe [source] [horizontal steps] [vertical steps] \r\n"
+      "- [source] must be a .geom file \r\n"
+      "- [horizontal steps] number of angles horizontally (4 + multiple of 4) \r\n"
+      "- [vertical steps] number of angles vertically (3 + multiple of 2) \r\n"
+      "\r\n"
+      "Defaults used - [assets/duck.geom] [8] [5] \r\n"
+      "\r\n"
+      "Outputs to impostors.jpg"
+      "\r\n"
     );
     system ("pause");
   }
 
   // not doing any checks .. just assuming it's all in order
   if(argc > 1 ) {
-    source = argv[2];
+    source = argv[1];
   } else {
     source = default_source;
   }
-  if(argc >= 2 ) {
-    filename = argv[3];
-  } else {
-    filename = default_filename;
-  }
-  if(argc >= 3 ) {
-    horizontal_steps_ = (int)argv[3];
-    vertical_steps_ = (int)argv[4];
+  if(argc > 3 ) {
+    horizontal_steps_ = atoi(argv[2]);
+    vertical_steps_ = atoi(argv[3]);
   }
 
   viewport_width_ = 100 * horizontal_steps_;

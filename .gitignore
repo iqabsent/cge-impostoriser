@@ -10,3 +10,14 @@
 *.lai
 *.la
 *.a
+
+# Visual Studio crap
+*.sln
+*.sdf
+*.opensdf
+*.suo
+*.vcxproj.filters
+*.vcxproj.user
+ipch
+Debug
+Release

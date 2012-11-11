@@ -2,21 +2,13 @@
 #include "include/GL/glew.h"
 #define FREEGLUT_STATIC
 #include "include/GL/glut.h"
-
-// just use andy thomason's vector and matrix classes
-// think they need math
 #include <stdio.h>
 #include <math.h>
 #include "include/vector.h"
 #include "include/matrix.h"
-
-// my shader program class
-// .program returns a compiled & linked shader program
 #include "include/shader.h"
-
 #include "include/geom_format.h"
 #include "include/file_manager.h"
-
 #include "include/jpeglib.h"
 #include <stdlib.h>
 
@@ -29,6 +21,10 @@ int vertical_steps_ = 5;    //3 + multiple of 2
 mat4 modelToProjection_;
 mat4 cameraToWorld;
 mat4 modelToWorld;
+char default_source[] = "assets/duck.geom";
+char default_filename[] = "impostors.jpg";
+char * source;
+char * filename;
 
 void updateView()
 {
@@ -46,21 +42,16 @@ void updateView()
   modelToProjection_ = modelToWorld * worldToCamera * cameraToProjection;
 }
 
-void screendump() {
+void screendump(char * filename) {
 
   int bytes_per_pixel = 3;   // or 1 for GRACYSCALE images
-
   GLubyte *raw_image = new GLubyte[viewport_width_*viewport_height_*3];
 
+  // make buffer
   JSAMPROW row_pointer[1];
-
-	// now actually read the jpeg into the raw buffer
+	// read the jpeg into the raw buffer
 	row_pointer[0] = (GLubyte *)malloc( viewport_width_ * 3 );
-	// read one scan line at a time
-
   glReadPixels(0, 0, viewport_width_, viewport_height_, GL_RGB, GL_UNSIGNED_BYTE, raw_image);
-		
-  char *filename = "test.jpg";
 
   struct jpeg_compress_struct cinfo;
 	struct jpeg_error_mgr jerr;
@@ -111,7 +102,7 @@ void display()
 
   glEnable(GL_DEPTH_TEST);
 
-  const unsigned char *src = (const unsigned char *)file_manager::bytes("assets/LOD3spShape-lib.geom");
+  const unsigned char *src = (const unsigned char *)file_manager::bytes(source);
   const geom_format::header_t &hdr = (geom_format::header_t &)src[0];
    
   for (int i = 0; i != hdr.num_elements; ++i) {
@@ -140,8 +131,11 @@ void display()
     }
   }
 
-  //screendump();
+  screendump(filename);
 
+  // remove this if you want to see what should be going into the file on-screen.
+  // ...will create this file every frame :/
+  exit(0); // i realise the consequences...
 }
 
 // boiler plate for building a camera
@@ -157,17 +151,47 @@ void build_camera_matrix()
 
 void main(int argc, char** argv) {
 
-//these should be set / overiden by args
-viewport_width_ = 100 * horizontal_steps_;
-viewport_height_ = 100 * vertical_steps_;
+  if(argc < 2) {
+    // print usage message, quit
+    printf(
+    "\r\n"
+    "Usage: impostorise [source] [destination] [horizontal steps] [vertical steps] \r\n"
+    "- [source] must be a .geom file \r\n"
+    "- [destination] must be a .jpg file (will override) \r\n"
+    "- [horizontal steps] number of angles horizontally (4 + multiple of 4) \r\n"
+    "- [vertical steps] number of angles vertically (3 + multiple of 2) \r\n"
+    "\r\n"
+    "Defaults used - [assets/duck.geom] [impostors.jpg] [8] [5] \r\n"
+    "\r\n"
+    );
+    system ("pause");
+  }
+
+  // not doing any checks .. just assuming it's all in order
+  if(argc > 1 ) {
+    source = argv[2];
+  } else {
+    source = default_source;
+  }
+  if(argc >= 2 ) {
+    filename = argv[3];
+  } else {
+    filename = default_filename;
+  }
+  if(argc >= 3 ) {
+    horizontal_steps_ = (int)argv[3];
+    vertical_steps_ = (int)argv[4];
+  }
+
+  viewport_width_ = 100 * horizontal_steps_;
+  viewport_height_ = 100 * vertical_steps_;
 
   glutInit(&argc, argv);
   glutInitWindowSize(viewport_width_, viewport_height_);
-  glutCreateWindow("..and again..");
+  glutCreateWindow("Impostorise!");
   glewInit();
 
   shaderProg.init();
-
   program = shaderProg.program();
 
   build_camera_matrix();
@@ -175,16 +199,5 @@ viewport_height_ = 100 * vertical_steps_;
   //function for rendering
   glutDisplayFunc(display);
 
-  modelToWorld.translate(0,-4, 0);
-
-  //call main loop
   glutMainLoop(); //Start the main loop
-  //display();
- 
-  /*/ Add or remove * between preceding // to toggle this block
-  GLfloat color[] = {1, 1, 0, 1};
-  GLuint colorIndex = glGetUniformLocation(program, "color");
-  glUniform4fv(colorIndex, 1, color);
-  //*/
-
 }

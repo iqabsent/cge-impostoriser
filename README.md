@@ -1,4 +1,4 @@
-# MScCGE-tm-2011 #
+# MSc CGE (Tools & Middleware - tool) Impostoriser #
 ==============
 
 Make impostors of a .geom file.
